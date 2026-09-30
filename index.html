@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpendWise — Smart Personal Expense Tracker</title>
+    <meta name="description" content="SpendWise is a simple, smart, and private personal finance dashboard to track income, expenses, budgets, and analytics.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for CSV import/export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">💸</div>
+                <div class="brand-text">
+                    <h2>SpendWise</h2>
+                    <span class="version-tag">HTML Edition</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-page="dashboard">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-label">Dashboard</span>
+                </button>
+                <button class="nav-item" data-page="add-expense">
+                    <span class="nav-icon">➕</span>
+                    <span class="nav-label">Add Transaction</span>
+                </button>
+                <button class="nav-item" data-page="transactions">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-label">Transactions</span>
+                </button>
+                <button class="nav-item" data-page="analytics">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Analytics</span>
+                </button>
+                <button class="nav-item" data-page="budget">
+                    <span class="nav-icon">💰</span>
+                    <span class="nav-label">Budget</span>
+                </button>
+                <button class="nav-item" data-page="import-export">
+                    <span class="nav-icon">📥</span>
+                    <span class="nav-label">Import / Export</span>
+                </button>
+                <button class="nav-item" data-page="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-label">Settings</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="storage-info">
+                    <span class="status-dot"></span>
+                    <span id="storage-status">Saved Locally</span>
+                </div>
+                <p class="copyright">Private &amp; Offline Ready</p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button id="mobile-menu-toggle" class="mobile-toggle" aria-label="Toggle navigation">☰</button>
+                    <h1 id="page-title">Financial Overview</h1>
+                </div>
+                <div class="topbar-right">
+                    <button class="btn btn-secondary btn-sm" id="btn-quick-add">➕ Quick Add</button>
+                    <button class="btn-theme-toggle" id="theme-toggle" title="Toggle dark/light mode">🌙</button>
+                </div>
+            </header>
+
+            <!-- Notification Toast Container -->
+            <div id="toast-container" class="toast-container"></div>
+
+            <!-- Page 1: Dashboard -->
+            <section id="page-dashboard" class="page-view active">
+                <div class="dashboard-controls card">
+                    <div class="filter-row">
+                        <div class="form-group inline">
+                            <label for="dash-year">Year</label>
+                            <select id="dash-year" class="form-control"></select>
+                        </div>
+                        <div class="form-group inline">
+                            <label for="dash-month">Month</label>
+                            <select id="dash-month" class="form-control">
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        <div class="date-badge" id="dash-date-subtitle"></div>
+                    </div>
+                </div>
+
+                <!-- Stat Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card income">
+                        <div class="metric-icon">💰</div>
+                        <div class="metric-content">
+                            <span class="metric-label">Total Income</span>
+                            <h2 class="metric-value" id="dash-income">₹0.00</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card expense">
+                        <div class="metric-icon">💸</div>
+                        <div class="metric-content">
+                            <span class="metric-label">Total Expenses</span>
+                            <h2 class="metric-value" id="dash-expense">₹0.00</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card balance">
+                        <div class="metric-icon">💵</div>
+                        <div class="metric-content">
+                            <span class="metric-label">Net Balance</span>
+                            <h2 class="metric-value" id="dash-balance">₹0.00</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card rate">
+                        <div class="metric-icon">📊</div>
+                        <div class="metric-content">
+                            <span class="metric-label">Savings Rate</span>
+                            <h2 class="metric-value" id="dash-savings">0.0%</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="grid-2-col">
+                    <div class="card chart-card">
+                        <h3>📈 Annual Spending Trend</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-dash-trend"></canvas>
+                        </div>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>🍩 Expenses by Category</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-dash-category"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2-col">
+                    <div class="card chart-card">
+                        <h3>📊 Income vs Expenses Comparison</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-dash-income-expense"></canvas>
+                        </div>
+                    </div>
+                    <div class="card budget-card">
+                        <h3>💰 Budget Status</h3>
+                        <div id="dash-budget-status-container" class="budget-status-wrapper">
+                            <!-- Budget progress bars render here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📋 Recent Transactions</h3>
+                        <button class="btn btn-link" onclick="app.navigateTo('transactions')">View All →</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table" id="table-dash-recent">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th>Payment Method</th>
+                                    <th class="text-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 2: Add Expense -->
+            <section id="page-add-expense" class="page-view">
+                <div class="card form-card">
+                    <div class="card-header">
+                        <div>
+                            <h2>➕ Add Transaction</h2>
+                            <p class="subtitle">Record your income and expenses effortlessly.</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="add-another-toggle" checked>
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Add another after saving</span>
+                        </label>
+                    </div>
+
+                    <form id="form-add-transaction" onsubmit="app.handleAddTransaction(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="add-date">Date *</label>
+                                <input type="date" id="add-date" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="add-type">Transaction Type *</label>
+                                <select id="add-type" class="form-control" required>
+                                    <option value="Expense">Expense 💸</option>
+                                    <option value="Income">Income 💰</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="add-category">Category *</label>
+                                <select id="add-category" class="form-control" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="add-subcategory">Subcategory</label>
+                                <input type="text" id="add-subcategory" class="form-control" placeholder="e.g. Fuel, Groceries, Dinner">
+                            </div>
+                            <div class="form-group">
+                                <label for="add-description">Description *</label>
+                                <input type="text" id="add-description" class="form-control" placeholder="e.g. Weekly supermarket shopping" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="add-amount">Amount (<span class="currency-symbol">₹</span>) *</label>
+                                <input type="number" id="add-amount" class="form-control" step="0.01" min="0.01" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="add-payment">Payment Method *</label>
+                                <select id="add-payment" class="form-control" required></select>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="add-notes">Notes</label>
+                                <textarea id="add-notes" class="form-control" rows="3" placeholder="Additional details or remarks..."></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-lg">💾 Save Transaction</button>
+                            <button type="button" class="btn btn-secondary btn-lg" onclick="app.resetAddForm()">Reset</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Page 3: Transactions -->
+            <section id="page-transactions" class="page-view">
+                <div class="card filter-card">
+                    <div class="card-header">
+                        <h3>🔍 Filters &amp; Sorting</h3>
+                        <button class="btn btn-secondary btn-sm" id="btn-reset-filters">Reset Filters</button>
+                    </div>
+
+                    <div class="filter-grid">
+                        <div class="form-group">
+                            <label for="filter-start">From Date</label>
+                            <input type="date" id="filter-start" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-end">To Date</label>
+                            <input type="date" id="filter-end" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-type">Type</label>
+                            <select id="filter-type" class="form-control">
+                                <option value="All">All Types</option>
+                                <option value="Expense">Expense</option>
+                                <option value="Income">Income</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-category">Category</label>
+                            <select id="filter-category" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-payment">Payment Method</label>
+                            <select id="filter-payment" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-search">Search Description</label>
+                            <input type="text" id="filter-search" class="form-control" placeholder="Search keywords...">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-min">Min Amount</label>
+                            <input type="number" id="filter-min" class="form-control" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-max">Max Amount</label>
+                            <input type="number" id="filter-max" class="form-control" placeholder="No limit">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-sort">Sort By</label>
+                            <select id="filter-sort" class="form-control">
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="amount-desc">Amount: High to Low</option>
+                                <option value="amount-asc">Amount: Low to High</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transactions Summary Bar -->
+                <div class="table-summary-bar card">
+                    <div class="summary-stat">
+                        <span class="stat-label">Filtered Total:</span>
+                        <strong class="stat-value" id="tx-filtered-total">₹0.00</strong>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="stat-label">Showing:</span>
+                        <strong class="stat-value" id="tx-count-badge">0 items</strong>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="data-table" id="table-transactions">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Category</th>
+                                    <th>Subcategory</th>
+                                    <th>Description</th>
+                                    <th>Payment Method</th>
+                                    <th class="text-right">Amount</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination-bar">
+                        <span id="pagination-info">Page 1 of 1</span>
+                        <div class="pagination-controls">
+                            <button class="btn btn-secondary btn-sm" id="btn-prev-page">← Previous</button>
+                            <button class="btn btn-secondary btn-sm" id="btn-next-page">Next →</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 4: Analytics -->
+            <section id="page-analytics" class="page-view">
+                <div class="card filter-card">
+                    <div class="filter-row">
+                        <div class="form-group inline">
+                            <label for="analytics-period">Period Selector</label>
+                            <select id="analytics-period" class="form-control">
+                                <option value="This Month">This Month</option>
+                                <option value="Last Month">Last Month</option>
+                                <option value="Last 3 Months">Last 3 Months</option>
+                                <option value="Last 6 Months">Last 6 Months</option>
+                                <option value="This Year">This Year</option>
+                                <option value="Custom">Custom Date Range</option>
+                            </select>
+                        </div>
+
+                        <div id="analytics-custom-dates" class="form-grid inline-grid hidden">
+                            <div class="form-group inline">
+                                <label for="ana-start-date">Start Date</label>
+                                <input type="date" id="ana-start-date" class="form-control">
+                            </div>
+                            <div class="form-group inline">
+                                <label for="ana-end-date">End Date</label>
+                                <input type="date" id="ana-end-date" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Metrics -->
+                <div class="metrics-grid">
+                    <div class="metric-card expense">
+                        <div class="metric-icon">💸</div>
+                        <div class="metric-content">
+                            <span class="metric-label">Period Expenses</span>
+                            <h2 class="metric-value" id="ana-total-expenses">₹0.00</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card balance">
+                        <div class="metric-icon">📅</div>
+                        <div class="metric-content">
+                            <span class="metric-label">Avg Daily Spending</span>
+                            <h2 class="metric-value" id="ana-daily-avg">₹0.00</h2>
+                        </div>
+                    </div>
+                    <div class="metric-card rate">
+                        <div class="metric-icon">🔄</div>
+                        <div class="metric-content">
+                            <span class="metric-label">Prev Period Spending</span>
+                            <h2 class="metric-value" id="ana-prev-period">₹0.00</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-alert" id="ana-comparison-alert">
+                    Spending comparison will appear here.
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="grid-2-col">
+                    <div class="card chart-card">
+                        <h3>🍩 Expense Breakdown by Category</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-ana-category"></canvas>
+                        </div>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>📈 Daily Spending Trend</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-ana-daily"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2-col">
+                    <div class="card chart-card">
+                        <h3>📊 Monthly Spending Comparison</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-ana-monthly"></canvas>
+                        </div>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>💳 Payment Method Breakdown</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-ana-payment"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card chart-card">
+                    <h3>🏷️ Category Total Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-ana-category-bar"></canvas>
+                    </div>
+                </div>
+
+                <!-- Top Expenses Table -->
+                <div class="card">
+                    <h3>🔥 Top 10 Largest Expenses</h3>
+                    <div class="table-responsive">
+                        <table class="data-table" id="table-top-expenses">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th>Payment Method</th>
+                                    <th class="text-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 5: Budget -->
+            <section id="page-budget" class="page-view">
+                <div class="card form-card">
+                    <div class="card-header">
+                        <div>
+                            <h2>💰 Budget Setup</h2>
+                            <p class="subtitle">Set overall and category-specific monthly budgets.</p>
+                        </div>
+                    </div>
+
+                    <form id="form-budget" onsubmit="app.handleSaveBudgets(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="budget-overall">Overall Monthly Budget (<span class="currency-symbol">₹</span>)</label>
+                                <input type="number" id="budget-overall" class="form-control" step="500" min="0" placeholder="e.g. 50000">
+                            </div>
+                            <div class="form-group">
+                                <label for="budget-category-select">Select Category to Edit</label>
+                                <select id="budget-category-select" class="form-control"></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="budget-category-amount">Category Budget (<span class="currency-symbol">₹</span>)</label>
+                                <input type="number" id="budget-category-amount" class="form-control" step="100" min="0" placeholder="e.g. 10000">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">💾 Save Budgets</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Budget Status List -->
+                <div class="card">
+                    <h3>📊 Active Budget Progress</h3>
+                    <div id="budget-progress-list" class="budget-progress-container">
+                        <!-- Progress bars rendered here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 6: Import / Export -->
+            <section id="page-import-export" class="page-view">
+                <div class="grid-2-col">
+                    <!-- Export Card -->
+                    <div class="card">
+                        <h2>📤 Export Transactions</h2>
+                        <p class="subtitle">Download transaction data in CSV format.</p>
+
+                        <div class="form-group">
+                            <label>Export Scope</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="export-scope" value="all" checked> All Transactions</label>
+                                <label><input type="radio" name="export-scope" value="range"> Date Range</label>
+                            </div>
+                        </div>
+
+                        <div id="export-range-container" class="form-grid hidden">
+                            <div class="form-group">
+                                <label for="export-from">Export From</label>
+                                <input type="date" id="export-from" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="export-to">Export To</label>
+                                <input type="date" id="export-to" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="form-actions mt-4">
+                            <button class="btn btn-primary" onclick="app.exportCSV()">📄 Download CSV</button>
+                            <button class="btn btn-secondary" onclick="app.exportJSON()">📦 Backup JSON</button>
+                        </div>
+                    </div>
+
+                    <!-- Import Card -->
+                    <div class="card">
+                        <h2>📥 Import Transactions</h2>
+                        <p class="subtitle">Upload a CSV or JSON file to import records.</p>
+                        
+                        <div class="import-dropzone" id="dropzone">
+                            <span class="drop-icon">📁</span>
+                            <p>Drag &amp; Drop CSV / JSON file here or <strong>Click to Browse</strong></p>
+                            <input type="file" id="import-file-input" accept=".csv, .json" style="display: none;">
+                        </div>
+
+                        <div id="import-preview-section" class="hidden mt-4">
+                            <h4>Import Preview</h4>
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <div class="metric-content">
+                                        <span class="metric-label">Total Rows</span>
+                                        <h3 id="import-total-rows">0</h3>
+                                    </div>
+                                </div>
+                                <div class="metric-card income">
+                                    <div class="metric-content">
+                                        <span class="metric-label">Valid Rows</span>
+                                        <h3 id="import-valid-rows">0</h3>
+                                    </div>
+                                </div>
+                                <div class="metric-card expense">
+                                    <div class="metric-content">
+                                        <span class="metric-label">Invalid Rows</span>
+                                        <h3 id="import-invalid-rows">0</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <button id="btn-confirm-import" class="btn btn-primary mt-3" disabled>Import Valid Records</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 7: Settings -->
+            <section id="page-settings" class="page-view">
+                <div class="card form-card">
+                    <div class="card-header">
+                        <h2>⚙️ Preferences &amp; Settings</h2>
+                    </div>
+
+                    <form id="form-settings" onsubmit="app.handleSaveSettings(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="settings-currency">Currency Symbol</label>
+                                <select id="settings-currency" class="form-control">
+                                    <option value="₹">₹ (INR)</option>
+                                    <option value="$">$ (USD)</option>
+                                    <option value="€">€ (EUR)</option>
+                                    <option value="£">£ (GBP)</option>
+                                    <option value="Rs.">Rs.</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-default-cat">Default Category</label>
+                                <select id="settings-default-cat" class="form-control"></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-default-pay">Default Payment Method</label>
+                                <select id="settings-default-pay" class="form-control"></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-theme">Theme Preference</label>
+                                <select id="settings-theme" class="form-control">
+                                    <option value="light">Light Mode ☀️</option>
+                                    <option value="dark">Dark Mode 🌙</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">💾 Save Settings</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Custom Categories -->
+                <div class="card">
+                    <h3>🏷️ Custom Categories</h3>
+                    <p class="subtitle">Add custom categories to personalize your spending classification.</p>
+                    
+                    <form id="form-add-category" onsubmit="app.handleAddCategory(event)" class="form-grid inline-grid">
+                        <div class="form-group">
+                            <input type="text" id="new-category-name" class="form-control" placeholder="e.g. 🎨 Hobby or 🐕 Pets" required>
+                        </div>
+                        <button type="submit" class="btn btn-secondary">Add Category</button>
+                    </form>
+
+                    <div id="category-chips-container" class="chip-group mt-3">
+                        <!-- Chips rendered here -->
+                    </div>
+                </div>
+
+                <!-- Demo Data & Reset -->
+                <div class="grid-2-col">
+                    <div class="card">
+                        <h3>🧪 Demo Data</h3>
+                        <p class="subtitle">Populate 30 realistic sample transactions for instant demonstration.</p>
+                        <button class="btn btn-secondary mt-3" onclick="app.loadDemoData()">⚡ Load Demo Data</button>
+                    </div>
+
+                    <div class="card danger-zone">
+                        <h3>⚠️ Danger Zone</h3>
+                        <p class="subtitle">Permanently erase all transaction data from your browser storage.</p>
+                        
+                        <div class="form-group mt-3">
+                            <label><input type="checkbox" id="confirm-delete-check"> I understand this action cannot be undone.</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="confirm-delete-text" class="form-control" placeholder="Type DELETE to confirm">
+                        </div>
+                        <button class="btn btn-danger" id="btn-delete-all" disabled onclick="app.deleteAllData()">🗑️ Delete All Data</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="modal-edit" class="modal-backdrop">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>✏️ Edit Transaction</h3>
+                <button class="modal-close" onclick="app.closeEditModal()">✕</button>
+            </div>
+            <form id="form-edit-transaction" onsubmit="app.handleUpdateTransaction(event)">
+                <input type="hidden" id="edit-id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="edit-date">Date *</label>
+                        <input type="date" id="edit-date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-type">Transaction Type *</label>
+                        <select id="edit-type" class="form-control" required>
+                            <option value="Expense">Expense 💸</option>
+                            <option value="Income">Income 💰</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-category">Category *</label>
+                        <select id="edit-category" class="form-control" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-subcategory">Subcategory</label>
+                        <input type="text" id="edit-subcategory" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-description">Description *</label>
+                        <input type="text" id="edit-description" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-amount">Amount *</label>
+                        <input type="number" id="edit-amount" class="form-control" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-payment">Payment Method *</label>
+                        <select id="edit-payment" class="form-control" required></select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="edit-notes">Notes</label>
+                        <textarea id="edit-notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="app.closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
